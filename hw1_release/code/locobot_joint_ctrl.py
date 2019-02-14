@@ -16,6 +16,8 @@ import vrep_utils as vu
 # Import any other libraries you might want to use ############################
 # ...
 from math import fabs
+import matplotlib.pyplot as plt
+
 ###############################################################################
 
 class ArmController:
@@ -23,20 +25,32 @@ class ArmController:
     def __init__(self):
         # Fill out this method ##################################
         # Define any variables you may need here for feedback control
-        # ...
-        self.Kp = 2.0
-        self.Ki = 0.25
-        self.Kd = 0.25
+        # ....
+
+        # For revolute joints
+        self.Kp = 10.0
+        self.Ki = 0.01
+        self.Kd = 0.1
+
+        # For prismatic joints
+        self.Kp_pris = 2.0
+        self.Ki_pris = 0.0
+        self.Kd_pris = 0.01
+
 
         self.p_term = 0.0
         self.i_term = 0.0
-        self.d_term =0.0
+        self.d_term = 0.0
 
-        self.i_limit = 10.0
+        self.i_limit = 1.0
 
         self.last_timestamp = None
         self.last_error = None
         self.first_flag = True
+
+        self.converged_time_interval = 1.5
+        self.converged_time_buffer = 0.0
+        self.time_flag = False
 
         #########################################################
         # Do not modify the following variables
@@ -88,7 +102,10 @@ class ArmController:
         self.last_timestamp = timestamp
         self.last_error = error
 
-        ctrl_commands = self.Kp * self.p_term + self.Ki * self.i_term + self.Kd * self.d_term
+        ctrl_commands[0:-2] = self.Kp * self.p_term[0:-2] + self.Ki * self.i_term[0:-2] + self.Kd * self.d_term[0:-2]
+        # different gains for prismatic joints
+        ctrl_commands[-2:] = self.Kp_pris * self.p_term[-2:] + self.Ki_pris * self.i_term[-2:] + self.Kd_pris * self.d_term[-2:]
+
         # print("Ctrl commands: ", ctrl_commands)
         #########################################################
 
@@ -100,7 +117,7 @@ class ArmController:
         self.history['ctrl_commands'].append(ctrl_commands)
         return ctrl_commands
 
-    def has_stably_converged_to_target(self):
+    def has_stably_converged_to_target(self, timestamp):
         # Fill out this method ##################################
         has_stably_converged_to_target = True
         num_joints = vu.N_ARM_JOINTS
@@ -109,12 +126,29 @@ class ArmController:
 
         for i in range(num_joints):
             # if fabs(self.last_error[i]) >= fabs(self._target_joint_positions[i] * 0.01): # within 1% range
-            if fabs(self.last_error[i]) >= 0.01:
-                has_stably_converged_to_target = False
-            
+            if i < num_joints - 2:
+                if fabs(self.last_error[i]) >= 0.01:
+                    has_stably_converged_to_target = False
+            else:
+                if fabs(self.last_error[i]) >= 0.002:
+                    has_stably_converged_to_target = False
+        # timestamp = vu.get_sim_time_seconds(clientID)
+        if has_stably_converged_to_target == True and self.time_flag == False:
+            self.converged_time_buffer = timestamp
+            self.time_flag = True
+
+        if timestamp - self.converged_time_buffer < self.converged_time_interval:
+            has_stably_converged_to_target = False
+        else:
+            self.time_flag = False
+
+        if has_stably_converged_to_target:
+            self.i_term = 0.0
+
+
         # ...
-        if has_stably_converged_to_target == True:
-            print("Fuck yeah!")
+        # if has_stably_converged_to_target == True:
+        #     print("F**k yeah!")
         #########################################################
         return has_stably_converged_to_target
 
@@ -199,7 +233,7 @@ def main(args):
             vu.step_sim(clientID, 1)
 
             # Determine if we've met the condition to move on to the next point
-            steady_state_reached = controller.has_stably_converged_to_target()
+            steady_state_reached = controller.has_stably_converged_to_target(timestamp)
 
     vu.stop_sim(clientID)
 
@@ -207,6 +241,77 @@ def main(args):
     # Fill this out here (optional) or in your own script 
     # If you use a separate script, don't forget to include it in the deliverables
     # ...
+
+    time_history = controller.history['timestamp']
+    joint_feedback_history = controller.history['joint_feedback']
+    joint_target_history = controller.history['joint_target']
+    ctrl_command_history = controller.history['ctrl_commands']
+
+    joint_feedback_history = np.array(joint_feedback_history)
+    joint_target_history = np.array(joint_target_history)
+    ctrl_command_history = np.array(ctrl_command_history)
+
+    # plt.plot(time_history, test_error_list, '-b', label='test_error')
+    plt.figure()
+    plt.plot(time_history, joint_feedback_history[:, 0], 'r', linewidth=2, label='actual')
+    plt.plot(time_history, joint_target_history[:, 0], 'b', linewidth=2, label='target')
+    plt.xlabel('Timestamp (s)')
+    plt.ylabel('Joint1 Angle (rad)')
+    plt.legend()   
+    plt.grid()
+
+
+    plt.figure()
+    plt.plot(time_history, joint_feedback_history[:, 1], 'r', linewidth=2, label='actual')
+    plt.plot(time_history, joint_target_history[:, 1], 'b', linewidth=2, label='target')
+    plt.xlabel('Timestamp (s)')
+    plt.ylabel('Joint2 Angle (rad)')
+    plt.legend()   
+    plt.grid()
+    
+    plt.figure()
+    plt.plot(time_history, joint_feedback_history[:, 2], 'r', linewidth=2, label='actual')
+    plt.plot(time_history, joint_target_history[:, 2], 'b', linewidth=2, label='target')
+    plt.xlabel('Timestamp (s)')
+    plt.ylabel('Joint3 Angle (rad)')
+    plt.legend()   
+    plt.grid()
+
+    plt.figure()
+    plt.plot(time_history, joint_feedback_history[:, 3], 'r', linewidth=2, label='actual')
+    plt.plot(time_history, joint_target_history[:, 3], 'b', linewidth=2, label='target')
+    plt.xlabel('Timestamp (s)')
+    plt.ylabel('Joint4 Angle (rad)')
+    plt.legend()   
+    plt.grid()
+
+    plt.figure()
+    plt.plot(time_history, joint_feedback_history[:, 4], 'r', linewidth=2, label='actual')
+    plt.plot(time_history, joint_target_history[:, 4], 'b', linewidth=2, label='target')
+    plt.xlabel('Timestamp (s)')
+    plt.ylabel('Joint5 Angle (rad)')
+    plt.legend()   
+    plt.grid()
+
+    plt.figure()
+    plt.plot(time_history, joint_feedback_history[:, 5], 'r', linewidth=2, label='actual')
+    plt.plot(time_history, joint_target_history[:, 5], 'b', linewidth=2, label='target')
+    plt.plot(time_history, ctrl_command_history[:, 5], 'g', linewidth=2, label='ctrl_command')
+    plt.xlabel('Timestamp (s)')
+    plt.ylabel('Joint6 Angle (rad)')
+    plt.legend()   
+    plt.grid()
+
+    plt.figure()
+    plt.plot(time_history, joint_feedback_history[:, 6], 'r', linewidth=2, label='actual')
+    plt.plot(time_history, joint_target_history[:, 6], 'b', linewidth=2, label='target')
+    plt.plot(time_history, ctrl_command_history[:, 6], 'g', linewidth=2, label='ctrl_command')
+    plt.xlabel('Timestamp (s)')
+    plt.ylabel('Joint7 Angle (rad)')
+    plt.legend()   
+    plt.grid()
+
+    plt.show()
     #####################################################################################
 
 

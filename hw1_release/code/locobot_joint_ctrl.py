@@ -33,9 +33,9 @@ class ArmController:
         self.Kd = 0.1
 
         # For prismatic joints
-        self.Kp_pris = 2.0
-        self.Ki_pris = 0.0
-        self.Kd_pris = 0.01
+        self.Kp_pris = 10.0
+        self.Ki_pris = 0.01
+        self.Kd_pris = 0.1
 
 
         self.p_term = 0.0
@@ -77,7 +77,7 @@ class ArmController:
         # ...
 
         error = np.array(self._target_joint_positions) - np.array(sensed_joint_positions)
-        print("Error: ", error)
+        # print("Error: ", error)
 
         if self.first_flag == True:
             self.last_timestamp = timestamp
@@ -296,18 +296,18 @@ def main(args):
     plt.figure()
     plt.plot(time_history, joint_feedback_history[:, 5], 'r', linewidth=2, label='actual')
     plt.plot(time_history, joint_target_history[:, 5], 'b', linewidth=2, label='target')
-    plt.plot(time_history, ctrl_command_history[:, 5], 'g', linewidth=2, label='ctrl_command')
+    # plt.plot(time_history, ctrl_command_history[:, 5], 'g', linewidth=2, label='ctrl_command')
     plt.xlabel('Timestamp (s)')
-    plt.ylabel('Joint6 Angle (rad)')
+    plt.ylabel('Joint6 Angle (m)')
     plt.legend()   
     plt.grid()
 
     plt.figure()
     plt.plot(time_history, joint_feedback_history[:, 6], 'r', linewidth=2, label='actual')
     plt.plot(time_history, joint_target_history[:, 6], 'b', linewidth=2, label='target')
-    plt.plot(time_history, ctrl_command_history[:, 6], 'g', linewidth=2, label='ctrl_command')
+    # plt.plot(time_history, ctrl_command_history[:, 6], 'g', linewidth=2, label='ctrl_command')
     plt.xlabel('Timestamp (s)')
-    plt.ylabel('Joint7 Angle (rad)')
+    plt.ylabel('Joint7 Angle (m)')
     plt.legend()   
     plt.grid()
 

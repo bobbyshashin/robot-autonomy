@@ -1,6 +1,10 @@
 # Import system libraries
 import os
-from sets import Set
+# from sets import Set
+try:
+    from sets import Set
+except ImportError:
+    Set = set
 import sys
 import time
 
@@ -26,8 +30,18 @@ ARM_JOINT_NAMES = ['joint_1', # revolute / arm_base_link <- shoulder_link
                    'joint_6', # prismatic / gripper_link <- finger_r
                    'joint_7'] # prismatic / gripper_link <- finger_l
 
+CUBOID_NAMES = ['arm_base_link_joint_collision_cuboid',
+                'shoulder_link_collision_cuboid',
+                'elbow_link_collision_cuboid',
+                'forearm_link_collision_cuboid',
+                'wrist_link_collision_cuboid',
+                'gripper_link_collision_cuboid',
+                'finger_r_collision_cuboid',
+                'finger_l_collision_cuboid']
+
 N_ARM_JOINTS = len(ARM_JOINT_NAMES)
 ARM_JOINT_HANDLES = None
+CUBOID_HANDLES = None
 
 ### Utilities #################################################################
 
@@ -119,17 +133,19 @@ def get_object_position(clientID, handle, relative_to_handle=-1):
     '''Return the object position in reference to the relative handle.'''
     response, position = vrep.simxGetObjectPosition(clientID, 
                                                     handle,
-                                                    relative_to_handle)
+                                                    relative_to_handle,
+                                                    vrep.simx_opmode_blocking)
     if response != 0:
         print("Error: Cannot query position for handle {} with reference to {}".
                 format(handle, relative_to_handle))
     return position
 
-def get_object_orientation(clientID, handle, reference_handle=-1):
+def get_object_orientation(clientID, handle, relative_to_handle=-1):
     '''Return the object orientation in reference to the relative handle.'''
     response, orientation = vrep.simxGetObjectOrientation(clientID, 
                                                           handle,
-                                                          relative_to_handle)
+                                                          relative_to_handle,
+                                                          vrep.simx_opmode_blocking)
     if response != 0:
         print("Error: Cannot query position for handle {} with reference to {}".
                 format(handle, reference_handle))
@@ -145,7 +161,7 @@ def get_object_bounding_box(clientID, handle):
     for pos in position_to_param_id.keys():
         param_id = position_to_param_id[pos]
         response, value = vrep.simxGetObjectFloatParameter(
-                clientID, handle, param_id)
+                clientID, handle, param_id, vrep.simx_opmode_blocking)
         if response != 0:
             print("Error {}: Cannot get value for param {}".format(
                 response, pos))
@@ -191,3 +207,30 @@ def set_arm_joint_forces(clientID, forces):
         'Expected joint forces to be length {}, but it was length {} instead.'.format(len(forces), len(joint_handles))
     for j, f in zip(joint_handles, forces):
         set_joint_force(clientID, j, f)
+
+def get_cuboid_handles(clientID):
+    global CUBOID_HANDLES
+    if not CUBOID_HANDLES:
+        # Cache cuboid handles to avoid repeated handle requests
+        CUBOID_HANDLES = [get_handle_by_name(clientID, c) for c in CUBOID_NAMES]
+    return CUBOID_HANDLES
+
+def get_cuboid_positions(clientID):
+    cuboid_handles = get_cuboid_handles(clientID)
+    cuboid_positions = [get_object_position(clientID, c) for c in cuboid_handles]
+    return cuboid_positions
+
+def get_cuboid_orientations(clientID):
+    cuboid_handles = get_cuboid_handles(clientID)
+    cuboid_orientations = [get_object_orientation(clientID, c) for c in cuboid_handles]
+    return cuboid_orientations
+
+def get_cuboid_dimensions(clientID):
+    cuboid_handles = get_cuboid_handles(clientID)
+    cuboid_dimensions = []
+    for c in cuboid_handles:
+        min_pos, max_pos = get_object_bounding_box(clientID, c)
+        dim = np.array([max_pos[0] - min_pos[0], max_pos[1] - min_pos[1], max_pos[2] - min_pos[2]])
+        cuboid_dimensions.append(dim)
+    return cuboid_dimensions
+

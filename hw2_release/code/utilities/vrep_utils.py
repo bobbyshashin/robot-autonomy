@@ -234,3 +234,7 @@ def get_cuboid_dimensions(clientID):
         cuboid_dimensions.append(dim)
     return cuboid_dimensions
 
+def get_arm_joint_poses(clientID):
+    joint_handles = get_arm_joint_handles(clientID)
+    joint_poses = [get_object_position(clientID, j) for j in joint_handles]
+    return joint_poses

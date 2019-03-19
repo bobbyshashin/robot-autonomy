@@ -58,3 +58,37 @@ def getWristJacobian(joint_angle_list, rotational_axes, link_translation):
     
     J = np.append(Jv, Jw, axis=0)
     return J
+
+
+
+def main(args):
+    joint_angles = args.joints
+    assert len(joint_angles) == 5, "Incorrect number of joints specified."
+
+    # TODO("Change this as required")
+    link_translation = np.array([[-0.0896, 0.00039, 0.159],
+                                 [0,      0,      0.04125],
+                                 [0.05,   0,      0.2],
+                                 [0.2002, 0,      0],
+                                 [0.063,  0.0001, 0]])
+
+    rotational_axes = np.array([[0,  0, 1],
+                                [0,  1, 0],
+                                [0,  1, 0],
+                                [0,  1, 0],
+                                [-1, 0, 0]])
+
+    pose = getWristPose(joint_angles, rotational_axes, link_translation)
+    jacobian = getWristJacobian(joint_angles, rotational_axes, link_translation)
+
+    print("Wrist pose: {}".format(np.array_str(np.array(pose), precision=3)))
+    print("Jacobian: {}".format(np.array_str(np.array(jacobian), precision=3)))
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+            description='Get wrist pose using forward kinematics')
+    parser.add_argument('--joints', type=float, nargs='+', required=True,
+                        help='Joint angles to get wrist position for.')
+    args = parser.parse_args()
+    
+    main(args)

@@ -30,7 +30,7 @@ ARM_JOINT_NAMES = ['joint_1', # revolute / arm_base_link <- shoulder_link
                    'joint_6', # prismatic / gripper_link <- finger_r
                    'joint_7'] # prismatic / gripper_link <- finger_l
 
-CUBOID_NAMES = ['arm_base_link_joint_collision_cuboid',
+JOINT_CUBOID_NAMES = ['arm_base_link_joint_collision_cuboid',
                 'shoulder_link_collision_cuboid',
                 'elbow_link_collision_cuboid',
                 'forearm_link_collision_cuboid',
@@ -39,9 +39,17 @@ CUBOID_NAMES = ['arm_base_link_joint_collision_cuboid',
                 'finger_r_collision_cuboid',
                 'finger_l_collision_cuboid']
 
+OBSTACLE_CUBOID_NAMES = ['cuboid_0',
+                'cuboid_1',
+                'cuboid_2',
+                'cuboid_3',
+                'cuboid_4',
+                'cuboid_5']
+
 N_ARM_JOINTS = len(ARM_JOINT_NAMES)
 ARM_JOINT_HANDLES = None
-CUBOID_HANDLES = None
+JOINT_CUBOID_HANDLES = None
+OBSTACLE_CUBOID_HANDLES = None
 
 ### Utilities #################################################################
 
@@ -208,25 +216,35 @@ def set_arm_joint_forces(clientID, forces):
     for j, f in zip(joint_handles, forces):
         set_joint_force(clientID, j, f)
 
-def get_cuboid_handles(clientID):
-    global CUBOID_HANDLES
-    if not CUBOID_HANDLES:
+def get_obstacle_cuboid_handles(clientID):
+    global OBSTACLE_CUBOID_HANDLES
+    if not OBSTACLE_CUBOID_HANDLES:
         # Cache cuboid handles to avoid repeated handle requests
-        CUBOID_HANDLES = [get_handle_by_name(clientID, c) for c in CUBOID_NAMES]
-    return CUBOID_HANDLES
+        OBSTACLE_CUBOID_HANDLES = [get_handle_by_name(clientID, c) for c in OBSTACLE_CUBOID_NAMES]
+    return OBSTACLE_CUBOID_HANDLES
 
-def get_cuboid_positions(clientID):
-    cuboid_handles = get_cuboid_handles(clientID)
+def get_joint_cuboid_handles(clientID):
+    global JOINT_CUBOID_HANDLES
+    if not JOINT_CUBOID_HANDLES:
+        # Cache cuboid handles to avoid repeated handle requests
+        JOINT_CUBOID_HANDLES = [get_handle_by_name(clientID, c) for c in JOINT_CUBOID_NAMES]
+    return JOINT_CUBOID_HANDLES
+
+def get_cuboid_positions(clientID, handles):
+    # cuboid_handles = get_cuboid_handles(clientID)
+    cuboid_handles = handles
     cuboid_positions = [get_object_position(clientID, c) for c in cuboid_handles]
     return cuboid_positions
 
-def get_cuboid_orientations(clientID):
-    cuboid_handles = get_cuboid_handles(clientID)
+def get_cuboid_orientations(clientID, handles):
+    # cuboid_handles = get_cuboid_handles(clientID)
+    cuboid_handles = handles
     cuboid_orientations = [get_object_orientation(clientID, c) for c in cuboid_handles]
     return cuboid_orientations
 
-def get_cuboid_dimensions(clientID):
-    cuboid_handles = get_cuboid_handles(clientID)
+def get_cuboid_dimensions(clientID, handles):
+    # cuboid_handles = get_cuboid_handles(clientID)
+    cuboid_handles = handles
     cuboid_dimensions = []
     for c in cuboid_handles:
         min_pos, max_pos = get_object_bounding_box(clientID, c)

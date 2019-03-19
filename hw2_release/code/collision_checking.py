@@ -11,7 +11,7 @@ sys.path.append(os.path.join(cwd,'utilities'))
 
 import numpy as np
 from numpy import cos,sin
-import vrep_utils as vu
+# import vrep_utils as vu
 
 def constructRotationMatrix(orientation):
     r, p, y = orientation
@@ -85,13 +85,13 @@ def singleAxisCollisionCheck(axis, c1, c2):
     for i in range(num_vertices):
 
         dist1 = v1[i] @ axis
-        print("v1[i]: ", v1[i])
-        print("axis: ", axis)
-        print("dist1: ", dist1)
+        # print("v1[i]: ", v1[i])
+        # print("axis: ", axis)
+        # print("dist1: ", dist1)
         dist2 = v2[i] @ axis
-        print("v2[i]: ", v2[i])
-        print("axis: ", axis)
-        print("dist2: ", dist2)
+        # print("v2[i]: ", v2[i])
+        # print("axis: ", axis)
+        # print("dist2: ", dist2)
         if dist1 > max1:
             max1 = dist1
         if dist1 < min1:
@@ -101,15 +101,15 @@ def singleAxisCollisionCheck(axis, c1, c2):
         if dist2 < min2:
             min2 = dist2
 
-    print("max1: ", max1)
-    print("min1: ", min1)
-    print("max2: ", max2)
-    print("min2: ", min2)
+    # print("max1: ", max1)
+    # print("min1: ", min1)
+    # print("max2: ", max2)
+    # print("min2: ", min2)
 
     longSpan = max(max1, max2) - min(min1, min2)
     sumSpan = max1 - min1 + max2 - min2
-    print(longSpan)
-    print(sumSpan)
+    # print(longSpan)
+    # print(sumSpan)
     return longSpan <= sumSpan
 
 
@@ -139,8 +139,8 @@ def findNormalVectors(c1, c2):
     normals = np.append(normals, c1_axes, axis=1)
     normals = np.append(normals, c2_axes, axis=1)
 
-    for i in range(15):
-        print(normals[:,i])
+    # for i in range(15):
+    #     print(normals[:,i])
     return normals # 3xn matrix, each column is a normal vector (either of one surface of a cuboid, or of a pair of edges of two cuboids)
 
 def collisionCheck(c1, c2):
@@ -151,88 +151,18 @@ def collisionCheck(c1, c2):
 
     collide = True
     for i in range(axes_to_check.shape[1]):
-        print('i= ', i)
-        print("Axis: ", axes_to_check[:, i])
+        # print('i= ', i)
+        # print("Axis: ", axes_to_check[:, i])
         yes = singleAxisCollisionCheck(axes_to_check[:, i], c1, c2)
-        print(yes)
+        # print(yes)
         collide = collide and yes
-    print(collide)
+    # print(collide)
     return collide
 
 
 def vecProjection(vec_ref, vec):
     return (np.dot(vec_ref, vec) / (np.linalg.norm(vec_ref) ** 2)) * vec_ref
 
-
-# def main():
-#     # Connect to V-REP
-#     print ('Connecting to V-REP...')
-#     clientID = vu.connect_to_vrep()
-#     print ('Connected.')
-
-#     # Reset simulation in case something was running
-#     vu.reset_sim(clientID)
-
-#     CUBOID_NAMES = ['arm_base_link_joint_collision_cuboid',
-#                     'shoulder_link_collision_cuboid',
-#                     'elbow_link_collision_cuboid',
-#                     'forearm_link_collision_cuboid',
-#                     'wrist_link_collision_cuboid',
-#                     'gripper_link_collision_cuboid',
-#                     'finger_r_collision_cuboid',
-#                     'finger_l_collision_cuboid']
-
-#     cuboid_positions = vu.get_cuboid_positions(clientID)
-#     cuboid_orientations = vu.get_cuboid_orientations(clientID)
-#     cuboid_dimensions = vu.get_cuboid_dimensions(clientID)
-
-#     joint_positions = vu.get_arm_joint_poses(clientID)
-#     print(joint_positions)
-
-#     H_world_base = cuboid_positions[0].copy()
-
-#     # # print(cuboid_positions)
-#     # for i in range(len(cuboid_positions)):
-#     #     for j in range(3):
-#     #         # print(cuboid_positions[i][j])
-#     #         cuboid_positions[i][j] -= H_world_base[j]
-#     #         # print(cuboid_positions[i][j], H_world_base[j])
-
-
-#     print("========== Joints ==========")
-#     for i in range(len(joint_positions)):
-#         pos = joint_positions[i]
-#         # print(CUBOID_NAMES[i] + str(pos))
-#         print("joint" + str(i+1))
-#         print("x: " + str(pos[0]))
-#         print("y: " + str(pos[1]))
-#         print("z: " + str(pos[2]))
-#         print()
-
-
-#     print("========== Positions ==========")
-#     for i in range(len(cuboid_positions)):
-#         pos = cuboid_positions[i]
-#         # print(CUBOID_NAMES[i] + str(pos))
-#         print(CUBOID_NAMES[i])
-#         print("x: " + str(pos[0]))
-#         print("y: " + str(pos[1]))
-#         print("z: " + str(pos[2]))
-#         print()
-
-#     print("========== Orientations ==========")
-
-#     for i in range(len(cuboid_orientations)):
-#         ori = cuboid_orientations[i]
-#         print(CUBOID_NAMES[i] + str(ori))
-
-#     print("========== Dimensions ==========")
-#     for i in range(len(cuboid_dimensions)):
-#         dim = cuboid_dimensions[i]
-#         print(CUBOID_NAMES[i] + str(dim))
-
-# if __name__ == '__main__':
-#     main();
 
 c_ref = Cuboid(origin=[0.0, 0.0, 0.0], orientation=[0.0, 0.0, 0.0], dimension=[3.0, 1.0, 2.0])
 
@@ -255,7 +185,7 @@ c8 = Cuboid(origin=[-0.8, 0.0, -0.5], orientation=[0.0, 0.0, 0.2], dimension=[1.
 # collisionCheck(c2, c_test)
 
 # collisionCheck(c_ref, c1)
-collisionCheck(c_ref, c2)
+# collisionCheck(c_ref, c2)
 # collisionCheck(c_ref, c3)
 # collisionCheck(c_ref, c4)
 # collisionCheck(c_ref, c5)

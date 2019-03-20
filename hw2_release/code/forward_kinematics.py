@@ -2,93 +2,90 @@ import numpy as np
 from numpy import cos,sin
 import argparse
 
-def constructRotationMatrix(rpy_list):
-	# roll, pitch, yaw convention
-    r = rpy_list[2]
-    p = rpy_list[1]
-    y = rpy_list[0]
-    return np.array([[cos(r)*cos(p), cos(r)*sin(p)*sin(y) - sin(r)*cos(y), cos(r)*sin(p)*cos(y) + sin(r)*sin(y)],
-                     [sin(r)*cos(p), sin(r)*sin(p)*sin(y) + cos(r)*cos(y), sin(r)*sin(p)*cos(y) - cos(r)*sin(y)],
-                     [-sin(p), cos(p)*sin(y), cos(p)*cos(y)]])
 
-def constructTransformationMatrix(R, t):
+class ForwardKinematicsHandler:
+    def __init__(self, initial, link_translation, rotational_axes, joint_cuboid_positions, joint_cuboid_orientations):
+        self.num_joints = initial.shape[0]
+        if self.num_joints != link_translation.shape[0] or self.num_joints != rotational_axes.shape[0]:
+            print("Error (Forward Kinematics): num_joints does not match!")
 
-    Rt = np.append(R, t, axis=1)
-    T = np.append(Rt, np.array([0, 0, 0, 1]).reshape(1,-1), axis=0)
+        self.initial = initial
+        self.joint_transformations = []
+        self.rotational_axes = rotational_axes
 
-    return T
+        for i in range(self.num_joints):
+            rpy_list = np.array([0.0, 0.0, 0.0])
+            H = self.constructTransformationMatrix(self.constructRotationMatrix(rpy_list), link_translation[i])
 
+            self.joint_transformations.append(H)
 
-def getWristPose(joint_angle_list, rotational_axes, link_translation):
+        self.link_transformations = self.getLinkRotations(initial)
+        self.transformations = []
 
-    num_joints = len(joint_angle_list)
-    link_rotation = np.multiply(rotational_axes, np.tile(np.array(joint_angle_list).reshape(num_joints, 1), (1, 3)))
+        for i in range(self.num_joints):
+            link_pose_H = self.constructTransformationMatrix(self.constructRotationMatrix(joint_cuboid_orientations[i]), joint_cuboid_positions[i])
+            self.transformations.append(np.linalg.inv(self.link_transformations[i]) @ link_pose_H)
+        # fingers
+        finger_r_H = self.constructTransformationMatrix(self.constructRotationMatrix(joint_cuboid_orientations[5]), joint_cuboid_positions[5])
+        finger_l_H = self.constructTransformationMatrix(self.constructRotationMatrix(joint_cuboid_orientations[6]), joint_cuboid_positions[6])
+        self.transformations.append(np.linalg.inv(self.link_transformations[4]) @ finger_l_H)
+        self.transformations.append(np.linalg.inv(self.link_transformations[4]) @ finger_r_H)
 
-    T_total = np.eye(4)
+        # print("Transformations: ")
+        # for t in self.transformations:
+        #     print(t)
+        #     print()
 
-    for i in range(num_joints):
-        T_total = np.dot(T_total, constructTransformationMatrix(constructRotationMatrix(link_rotation[i]), link_translation[i].reshape(3, 1)))
+    def getLinkRotations(self, joint_angle_list):
+        link_rotation = np.multiply(self.rotational_axes, np.tile(np.array(joint_angle_list).reshape(self.num_joints, 1), (1, 3)))
+        H_list = []
 
-    # flatten to 1*16 column major
-    return T_total.flatten('F')
-
-def getWristJacobian(joint_angle_list, rotational_axes, link_translation):
-
-    num_joints = len(joint_angle_list)
-
-    link_rotation = np.multiply(rotational_axes, np.tile(np.array(joint_angle_list).reshape(num_joints, 1), (1, 3)))
-
-    Jv = np.empty((3, 0))
-    Jw = np.empty((3, 0))
-
-    T_0n = getWristPose(joint_angle_list, rotational_axes, link_translation).reshape(4,4).T
-    t_0n = T_0n[0:3, 3]
-
-    for i in range(num_joints):
-
-        T_0i_flattened = getWristPose(joint_angle_list[0:i+1], rotational_axes[0:i+1], link_translation[0:i+1])
-        T_0i = T_0i_flattened.reshape(4, 4).T
-
-        R_0i = T_0i[0:3, 0:3]
-        t_0i = T_0i[0:3, 3]
-
-        Jv = np.append(Jv, np.cross(np.dot(R_0i, rotational_axes[i]).reshape(1, 3), (t_0n - t_0i).reshape(1, 3)).reshape(3, 1), axis=1)
-        Jw = np.append(Jw, np.dot(R_0i, rotational_axes[i]).reshape(3, 1), axis=1)
-
-    
-    J = np.append(Jv, Jw, axis=0)
-    return J
+        for i in range(self.num_joints):
+            H = self.constructTransformationMatrix(self.constructRotationMatrix(link_rotation[i]), np.array([0.0, 0.0, 0.0]))
+            if i == 0:
+                H_list.append(self.joint_transformations[i] @ H)
+            else:
+                H_list.append(H_list[i-1] @ self.joint_transformations[i] @ H)
+        return H_list
 
 
+    def constructRotationMatrix(self, rpy_list):
 
-def main(args):
-    joint_angles = args.joints
-    assert len(joint_angles) == 5, "Incorrect number of joints specified."
+        r = rpy_list[0]
+        p = rpy_list[1]
+        y = rpy_list[2]
 
-    # TODO("Change this as required")
-    link_translation = np.array([[-0.0896, 0.00039, 0.159],
-                                 [0,      0,      0.04125],
-                                 [0.05,   0,      0.2],
-                                 [0.2002, 0,      0],
-                                 [0.063,  0.0001, 0]])
+        Rx = np.array([[1.0, 0.0, 0.0],
+                      [0.0, cos(r), -sin(r)],
+                      [0.0, sin(r), cos(r)]])
 
-    rotational_axes = np.array([[0,  0, 1],
-                                [0,  1, 0],
-                                [0,  1, 0],
-                                [0,  1, 0],
-                                [-1, 0, 0]])
+        Ry = np.array([[cos(p), 0.0, sin(p)],
+                      [0.0, 1.0, 0.0],
+                      [-sin(p), 0.0, cos(p)]])
 
-    pose = getWristPose(joint_angles, rotational_axes, link_translation)
-    jacobian = getWristJacobian(joint_angles, rotational_axes, link_translation)
+        Rz = np.array([[cos(y), -sin(y), 0.0],
+                      [sin(y), cos(y), 0.0],
+                      [0.0, 0.0, 1.0]])
 
-    print("Wrist pose: {}".format(np.array_str(np.array(pose), precision=3)))
-    print("Jacobian: {}".format(np.array_str(np.array(jacobian), precision=3)))
+        return Rx @ Ry @ Rz
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-            description='Get wrist pose using forward kinematics')
-    parser.add_argument('--joints', type=float, nargs='+', required=True,
-                        help='Joint angles to get wrist position for.')
-    args = parser.parse_args()
-    
-    main(args)
+    def constructTransformationMatrix(self, R, t):
+
+        t = np.array(t).reshape(3, 1)
+
+        Rt = np.append(R, t, axis=1)
+        H = np.append(Rt, np.array([0, 0, 0, 1]).reshape(1,-1), axis=0)
+
+        return H
+
+    def updateCuboidPoses(self, joint_angle_list):
+        cuboid_poses = []
+        self.link_transformations = self.getLinkRotations(joint_angle_list)
+
+        for i in range(self.num_joints):
+            cuboid_poses.append(self.link_transformations[i] @ self.transformations[i])
+        # fingers
+        cuboid_poses.append(self.link_transformations[4] @ self.transformations[5])
+        cuboid_poses.append(self.link_transformations[4] @ self.transformations[6])
+
+        return cuboid_poses

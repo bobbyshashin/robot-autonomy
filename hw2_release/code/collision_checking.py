@@ -59,6 +59,11 @@ class Cuboid:
 
         self.vertices = (self.R @ constructVertices(self.dimension) + self.origin.reshape(3,1)).transpose() # 8x3 matrix, each row is the [x, y, z] for one vertex
 
+    def update(self, origin, R):
+        self.origin = np.array([origin[0], origin[1], origin[2]])
+        self.R = R.copy()
+        self.vertices = (self.R @ constructVertices(self.dimension) + self.origin.reshape(3,1)).transpose() # 8x3 matrix, each row is the [x, y, z] for one vertex
+
 def constructCuboid(origin, orientation, dimension):
 
     cuboid = Cuboid(origin, orientation, dimension)
@@ -124,7 +129,7 @@ def findNormalVectors(c1, c2):
 
     return normals # 3xn matrix, each column is a normal vector (either of one surface of a cuboid, or of a pair of edges of two cuboids)
 
-def collisionCheck(c1, c2):
+def SATcollisionCheck(c1, c2):
 
     axes_to_check = findNormalVectors(c1, c2)
 
@@ -139,6 +144,53 @@ def collisionCheck(c1, c2):
 def vecProjection(vec_ref, vec):
     return (np.dot(vec_ref, vec) / (np.linalg.norm(vec_ref) ** 2)) * vec_ref
 
+
+class CollisionChecker:
+    def __init__(self, link_cuboids, obstacle_cuboids, forward_kinematics_handler):
+        self.link_cuboids = link_cuboids
+        self.obstacle_cuboids = obstacle_cuboids
+        self.fk_handler = forward_kinematics_handler
+
+    def collisionCheck(self):
+
+        # Test collision between obstacle and joints
+        num_links = len(self.link_cuboids)
+        num_obstacles = len(self.obstacle_cuboids)
+
+        for i in range(num_links):
+            for j in range(num_obstacles):
+                collide = SATcollisionCheck(self.link_cuboids[i], self.obstacle_cuboids[j])
+                if collide:
+                    return True
+
+        # Test collision between different joints (arm's self-collision check)
+
+        for i in range(num_links):
+            for j in range(1, num_links - i - 1):
+                collide = SATcollisionCheck(self.link_cuboids[i], self.link_cuboids[i+j])
+                if collide:
+                    return True
+        return False
+
+    def checkCollisionSample(self, sample):
+        cuboid_poses = self.fk_handler.updateCuboidPoses(sample)
+        # self.link_cuboids.clear()
+
+        # print("Len of link cuboids:")
+        # print(len(self.link_cuboids))
+
+        # print("Len of cuboid poses:")
+        # print(len(cuboid_poses))
+
+        for i in range(len(cuboid_poses)):
+            self.link_cuboids[i+1].update(cuboid_poses[i][0:3, 3], cuboid_poses[i][0:3, 0:3])
+
+        collide = self.collisionCheck()
+        print(collide)
+        return self.collisionCheck()
+
+    def checkCollisionEdge(edge):
+        pass
 
 c_ref = Cuboid(origin=[0.0, 0.0, 0.0], orientation=[0.0, 0.0, 0.0], dimension=[3.0, 1.0, 2.0])
 
@@ -155,11 +207,11 @@ c8 = Cuboid(origin=[-0.8, 0.0, -0.5], orientation=[0.0, 0.0, 0.2], dimension=[1.
 # collisionCheck(c2, c_test)
 
 print("======== Collision Checking For 8 Cuboids ========")
-collisionCheck(c_ref, c1)
-collisionCheck(c_ref, c2)
-collisionCheck(c_ref, c3)
-collisionCheck(c_ref, c4)
-collisionCheck(c_ref, c5)
-collisionCheck(c_ref, c6)
-collisionCheck(c_ref, c7)
-collisionCheck(c_ref, c8)
+print(SATcollisionCheck(c_ref, c1))
+print(SATcollisionCheck(c_ref, c2))
+print(SATcollisionCheck(c_ref, c3))
+print(SATcollisionCheck(c_ref, c4))
+print(SATcollisionCheck(c_ref, c5))
+print(SATcollisionCheck(c_ref, c6))
+print(SATcollisionCheck(c_ref, c7))
+print(SATcollisionCheck(c_ref, c8))

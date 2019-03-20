@@ -18,9 +18,9 @@ import vrep_utils as vu
 from math import fabs
 import matplotlib.pyplot as plt
 
-from PRM import *
-from forward_kinematics import *
-from collision_checking import collisionCheck, Cuboid
+from PRM import PRM
+from forward_kinematics import ForwardKinematicsHandler
+from collision_checking import CollisionChecker, Cuboid
 from arm_controller import ArmController
 
 def main(args):
@@ -28,15 +28,6 @@ def main(args):
     print ('Connecting to V-REP...')
     clientID = vu.connect_to_vrep()
     print ('Connected.')
-
-    # Reset simulation in case something was running
-    vu.reset_sim(clientID)
-    # Initial control inputs are zero
-    vu.set_arm_joint_target_velocities(clientID, np.zeros(vu.N_ARM_JOINTS))
-    # Despite the name, this sets the maximum allowable joint force
-    vu.set_arm_joint_forces(clientID, 50.*np.ones(vu.N_ARM_JOINTS))
-    # One step to process the above settings
-    vu.step_sim(clientID)
 
     deg_to_rad = np.pi/180.
 
@@ -47,6 +38,8 @@ def main(args):
     #   joint_3 / revolute  / elbow_link    <- forearm_link
     #   joint_4 / revolute  / forearm_link  <- wrist_link
     #   joint_5 / revolute  / wrist_link    <- gripper_link
+
+    # Below two finger joints will not be commanded to move
     #   joint_6 / prismatic / gripper_link  <- finger_r
     #   joint_7 / prismatic / gripper_link  <- finger_l
 
@@ -61,6 +54,22 @@ def main(args):
                          -75.*deg_to_rad,
                          -75.*deg_to_rad,
                            0.*deg_to_rad])
+
+    link_translation = np.array([[-0.0896, 0.00039, 0.159],
+                                 [0,      0,      0.04125],
+                                 [0.05,   0,      0.2],
+                                 [0.2002, 0,      0],
+                                 [0.063,  0.0001, 0]])
+
+    rotational_axes = np.array([[0,  0, 1],
+                                [0,  1, 0],
+                                [0,  1, 0],
+                                [0,  1, 0],
+                                [-1, 0, 0]])
+
+    JOINT_LOWER_LIMIT = np.array([-1.57, -1.57, -1.57, -1.57, -1.57])
+    JOINT_UPPER_LIMIT = np.array([1.57, 1.57, 1.57, 1.57, 1.57])
+    # Get obstacle cuboids and joint cuboids
 
     obstacle_cuboid_names = vu.OBSTACLE_CUBOID_NAMES
     joint_cuboid_names = vu.JOINT_CUBOID_NAMES
@@ -99,11 +108,25 @@ def main(args):
     num_joints = len(joint_cuboids)
     num_obstacles = len(obstacle_cuboids)
 
-    for i in range(num_joints):
-        for j in range(num_obstacles):
-            collide = collisionCheck(joint_cuboids[i], obstacle_cuboids[j])
-            if collide:
-                print(joint_cuboid_names[i] + " and " + obstacle_cuboid_names[j] + ": Collided!")
+    # print("JOINT CUBOID POSITIONS: ")
+    # print()
+    # for jcp in joint_cuboid_positions[1:]:
+    #     print(jcp)
+    # print("JOINT CUBOID ORIENTATIONS: ")
+    # print()
+    # for jco in joint_cuboid_orientations[1:]:
+    #     print(jco)
+
+
+    # Test collision between obstacle and joints
+
+    # for i in range(num_joints):
+    #     for j in range(num_obstacles):
+    #         collide = collisionCheck(joint_cuboids[i], obstacle_cuboids[j])
+    #         if collide:
+    #             print(joint_cuboid_names[i] + " and " + obstacle_cuboid_names[j] + ": Collided!")
+
+    # Test collision between different joints (arm's self-collision check)
 
     # for i in range(num_joints):
     #     for j in range(1, num_joints - i - 1):
@@ -111,42 +134,62 @@ def main(args):
     #         print(joint_cuboid_names[i] + " and " + joint_cuboid_names[i+j] + ":")
     #         print(collide)
 
-
-
     joint_positions = vu.get_arm_joint_poses(clientID)
 
     # # Instantiate controller
-    # controller = ArmController()
+    controller = ArmController()
 
-    # # Iterate through target joint positions
-    # for target in joint_targets:
+    foward_kinematics_handler = ForwardKinematicsHandler(initial, link_translation, rotational_axes, joint_cuboid_positions[1:], joint_cuboid_orientations[1:]) # TODO
+    collision_checker = CollisionChecker(joint_cuboids, obstacle_cuboids, foward_kinematics_handler) # TODO
 
-    #     # Set new target position
-    #     controller.set_target_joint_positions(target)
 
-    #     steady_state_reached = False
-    #     while not steady_state_reached:
+    PRM_planner = PRM(JOINT_LOWER_LIMIT, JOINT_UPPER_LIMIT, 5, collision_checker) # TODO
 
-    #         timestamp = vu.get_sim_time_seconds(clientID)
-    #         print('Simulation time: {} sec'.format(timestamp))
+    sample = PRM_planner.randomSample()
+    print("Sample: ")
+    print(sample)
 
-    #         # Get current joint positions
-    #         sensed_joint_positions = vu.get_arm_joint_positions(clientID)
+    collision_checker.checkCollisionSample(sample)
 
-    #         # Calculate commands
-    #         commands = controller.calculate_commands_from_feedback(timestamp, sensed_joint_positions)
+    path = PRM_planner.plan(initial, final, num_samples=500)
 
-    #         # Send commands to V-REP
-    #         vu.set_arm_joint_target_velocities(clientID, commands)
+    fingers = np.array([-0.01, 0.01])
 
-    #         # Print current joint positions (comment out if you'd like)
-    #         # print(sensed_joint_positions)
-    #         vu.step_sim(clientID, 1)
+    # # Reset simulation in case something was running
+    # vu.reset_sim(clientID)
+    # # Initial control inputs are zero
+    # vu.set_arm_joint_target_velocities(clientID, np.zeros(vu.N_ARM_JOINTS))
+    # # Despite the name, this sets the maximum allowable joint force
+    # vu.set_arm_joint_forces(clientID, 50.*np.ones(vu.N_ARM_JOINTS))
+    # # One step to process the above settings
+    # vu.step_sim(clientID)
 
-    #         # Determine if we've met the condition to move on to the next point
-    #         steady_state_reached = controller.has_stably_converged_to_target(timestamp)
+    # Iterate through target joint positions
+    for target in path:
 
-    # vu.stop_sim(clientID)
+        target = np.append(target, fingers)
+        # Set new target position
+        controller.set_target_joint_positions(target)
+
+        steady_state_reached = False
+        while not steady_state_reached:
+
+            timestamp = vu.get_sim_time_seconds(clientID)
+            print('Simulation time: {} sec'.format(timestamp))
+
+            # Get current joint positions
+            sensed_joint_positions = vu.get_arm_joint_positions(clientID)
+            # Calculate commands
+            commands = controller.calculate_commands_from_feedback(timestamp, sensed_joint_positions)
+            # Send commands to V-REP
+            vu.set_arm_joint_target_velocities(clientID, commands)
+            # Print current joint positions (comment out if you'd like)
+            # print(sensed_joint_positions)
+            vu.step_sim(clientID, 1)
+            # Determine if we've met the condition to move on to the next point
+            steady_state_reached = controller.has_stably_converged_to_target(timestamp)
+
+    vu.stop_sim(clientID)
 
     # # Post simulation cleanup -- save results to a pickle, plot time histories, etc #####
     # # Fill this out here (optional) or in your own script 

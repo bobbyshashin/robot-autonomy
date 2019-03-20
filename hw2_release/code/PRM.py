@@ -95,7 +95,7 @@ class PRM:
 
     self.path = []
     for i in range(len(path) - 1):
-        self.interpolate(self.samples[path[i]], self.samples[path[i+1]])
+        self.interpolate(self.samples[path[i]], self.samples[path[i+1]], 100)
     return self.path
 
 

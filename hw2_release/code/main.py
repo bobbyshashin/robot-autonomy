@@ -152,10 +152,15 @@ def main(args):
     # print(sample)
     # collision_checker.checkCollisionSample(sample)
 
-    path = PRM_planner.plan(initial, final, N=500, k=10)
+    path = PRM_planner.plan(initial, final, N=100, k=10)
+    path_length = np.array([len(path)])
+
+    # while path = None: # no path found
+    #     path = PRM_planner() # TODO try larger N
 
     path_array = np.array(path)
     np.savetxt("path.txt", path_array)
+    np.savetxt("path_length.txt", path_length)
     # path = list(np.loadtxt("path.txt"))
 
     fingers = np.array([-0.03, 0.03])

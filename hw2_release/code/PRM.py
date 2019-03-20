@@ -41,7 +41,7 @@ class PRM:
       sample.append(one_sample)
     return sample # list of size "dimension"
 
-  def interpolate(self, sample1, sample2, num_interval=10):
+  def interpolate(self, sample1, sample2, num_interval=3):
     p1 = np.array(sample1)
     p2 = np.array(sample2)
 
@@ -73,6 +73,7 @@ class PRM:
     for i in range(len(self.samples)):
         edges = []
         distances, indices, neighbours = self.kd_tree.query(self.samples[i], k+1) # k+1 because a node consider itself as its nearest neighbour as well
+        print(indices)
         for index in indices:
             if index != i:
                 edges.append(index)
@@ -95,7 +96,7 @@ class PRM:
 
     self.path = []
     for i in range(len(path) - 1):
-        self.interpolate(self.samples[path[i]], self.samples[path[i+1]], 100)
+        self.interpolate(self.samples[path[i]], self.samples[path[i+1]], 50)
     return self.path
 
 

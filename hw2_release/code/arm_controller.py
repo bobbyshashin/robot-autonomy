@@ -30,7 +30,7 @@ class ArmController:
         self.last_error = None
         self.first_flag = True
 
-        self.converged_time_interval = 1.5
+        self.converged_time_interval = 0.01
         self.converged_time_buffer = 0.0
         self.time_flag = False
 

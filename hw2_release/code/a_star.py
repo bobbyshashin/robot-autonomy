@@ -91,7 +91,7 @@ class A_Star_PRM:
 
             del self.open_list[min_id]
 
-            if min_id is 1: # find goal
+            if min_id == 1: # find goal
                 print("Find goal!")
                 self.goal.parent = curr_node.parent
                 self.goal.g = curr_node.g
@@ -99,10 +99,10 @@ class A_Star_PRM:
 
             edges = self.roadmap[min_id]
             for e in edges:
-                if e == 1 and min_id != 0:
-                    print("Find goal!")
-                    self.goal.parent = min_id
-                    return True
+                # if e == 1 and min_id != 0:
+                #     print("Find goal!")
+                #     self.goal.parent = min_id
+                #     return True
 
                 if e == min_id or e in self.closed_list: # pass nodes already visited
                     continue

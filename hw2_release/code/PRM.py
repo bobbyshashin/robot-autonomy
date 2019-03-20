@@ -1,22 +1,23 @@
 import numpy as np
-from collision_checking import *
+# from collision_checking import CollisionChecker
 from scipy.spatial import cKDTree
+from a_star import A_Star_PRM
 
 class KD_Tree: # for nearest neighbour search
     def __init__(self, data):
       self.kd_tree = cKDTree(data)
 
     def query(self, node, k):
-    	dist, index = self.kd_tree.query(x=node, k=k)
-    	neighbours = self.kd_tree.data[index, :]
+        dist, index = self.kd_tree.query(x=node, k=k)
+        neighbours = self.kd_tree.data[index, :]
 
-    	return dist, index, neighbours
+        return dist, index, neighbours
 
     def query_ball_point(self, node, r):
-    	index = self.kd_tree.query_ball_point(x=node, r=r)
-    	neighbours = self.kd_tree.data[index, :]
+        index = self.kd_tree.query_ball_point(x=node, r=r)
+        neighbours = self.kd_tree.data[index, :]
 
-    	return index, neighbours
+        return index, neighbours
 
 class PRM:
   def __init__(self, lower_limit, upper_limit, dimension, collision_checker):
@@ -30,6 +31,8 @@ class PRM:
     self.samples = None
     self.kd_tree = None
 
+    self.path = None
+
   def randomSample(self):
     sample = []
     for i in range(self.dimension):
@@ -38,29 +41,61 @@ class PRM:
       sample.append(one_sample)
     return sample # list of size "dimension"
 
-  def buildRoadmap(self, num_samples, k):
+  def interpolate(self, sample1, sample2, num_interval=10):
+    p1 = np.array(sample1)
+    p2 = np.array(sample2)
 
+    p_diff = (p2 - p1) * 1.0 / num_interval
+
+    self.path.append(p1)
+    for i in range(num_interval):
+        self.path.append(p1 + p_diff * i)
+
+  def buildRoadmap(self, start, goal, num_samples, k):
+
+    print("Start to build roadmap...")
     self.samples = []
 
-    while len(self.samples) != num_samples:
-      s = randomSample()
-      if self.collision_checker.checkCollisionSingleSample(s): # TODO
+    self.samples.append(start)
+    self.samples.append(goal)
+
+    while len(self.samples) != num_samples + 2:
+      s = self.randomSample()
+      # TODO: resample globally or around current sample? (globally for now)
+      if self.collision_checker.checkCollisionSample(s) == False: # no collision
         self.samples.append(s)
+        print(len(self.samples))
 
 
     self.kd_tree = KD_Tree(self.samples)
 
-    for sample in self.samples:
-    	edges = []
-    	index, neighbours = self.kd_tree.query(sample, k)
-    	for i in index:
-    		edges.append(i)
+    self.roadmap = []
+    for i in range(len(self.samples)):
+        edges = []
+        distances, indices, neighbours = self.kd_tree.query(self.samples[i], k+1) # k+1 because a node consider itself as its nearest neighbour as well
+        for index in indices:
+            if index != i:
+                edges.append(index)
 
-    	self.roadmap.append(edges)
+        self.roadmap.append(edges)
 
-  def searchPath(self):
-  	pass
+  def plan(self, start, goal, N, k):
 
-	
+    num_samples = N
+    self.buildRoadmap(start, goal, num_samples, k)
+
+    astar_planner = A_Star_PRM(start, goal, self.roadmap, self.samples, self.collision_checker)
+    path = None
+    if astar_planner.search():
+        path = astar_planner.findPath()
+        path.reverse()
+        path.append(1) # goal
+        print("Print path:")
+        print(path)
+
+    self.path = []
+    for i in range(len(path) - 1):
+        self.interpolate(self.samples[path[i]], self.samples[path[i+1]])
+    return self.path
 
 

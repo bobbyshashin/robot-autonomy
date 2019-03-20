@@ -221,8 +221,18 @@ class CollisionChecker:
         # print(collide)
         return self.collisionCheckAll()
 
-    def checkCollisionEdge(edge):
-        
+    def validEdgeCheck(self, profile1, profile2, num_interval=10):
+        # perform interpolation between two samples and check collision on each interpolated waypoint
+
+        p1 = np.array(profile1)
+        p2 = np.array(profile2)
+
+        p_diff = (p2 - p1) * 1.0 / num_interval
+
+        for i in range(num_interval):
+            if self.checkCollisionSample(p1 + p_diff * i): # collide
+                return False
+        return True
 
 c_ref = Cuboid(origin=[0.0, 0.0, 0.0], orientation=[0.0, 0.0, 0.0], dimension=[3.0, 1.0, 2.0])
 

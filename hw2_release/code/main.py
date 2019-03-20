@@ -147,24 +147,27 @@ def main(args):
     PRM_planner = PRM(JOINT_LOWER_LIMIT, JOINT_UPPER_LIMIT, 5, collision_checker) # TODO
 
     # sample = PRM_planner.randomSample()
-    sample = final
-    print("Sample: ")
-    print(sample)
+    # sample = final
+    # print("Sample: ")
+    # print(sample)
+    # collision_checker.checkCollisionSample(sample)
 
-    collision_checker.checkCollisionSample(sample)
-
-    path = PRM_planner.plan(initial, final, num_samples=500)
+    path = PRM_planner.plan(initial, final, N=1000, k=20)
 
     fingers = np.array([-0.03, 0.03])
 
-    # # Reset simulation in case something was running
-    # vu.reset_sim(clientID)
-    # # Initial control inputs are zero
-    # vu.set_arm_joint_target_velocities(clientID, np.zeros(vu.N_ARM_JOINTS))
-    # # Despite the name, this sets the maximum allowable joint force
-    # vu.set_arm_joint_forces(clientID, 50.*np.ones(vu.N_ARM_JOINTS))
-    # # One step to process the above settings
-    # vu.step_sim(clientID)
+    path_array = np.array(path)
+    np.savetxt("path.txt", path_array)
+    # path = list(np.loadtxt("path.txt"))
+
+    # Reset simulation in case something was running
+    vu.reset_sim(clientID)
+    # Initial control inputs are zero
+    vu.set_arm_joint_target_velocities(clientID, np.zeros(vu.N_ARM_JOINTS))
+    # Despite the name, this sets the maximum allowable joint force
+    vu.set_arm_joint_forces(clientID, 50.*np.ones(vu.N_ARM_JOINTS))
+    # One step to process the above settings
+    vu.step_sim(clientID)
 
     # Iterate through target joint positions
     for target in path:

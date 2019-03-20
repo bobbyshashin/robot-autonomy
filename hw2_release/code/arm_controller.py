@@ -1,4 +1,6 @@
 import vrep_utils as vu
+import numpy as np
+from math import fabs
 
 class ArmController:
 
@@ -46,8 +48,8 @@ class ArmController:
         self._target_joint_positions = target_joint_positions
 
     def calculate_commands_from_feedback(self, timestamp, sensed_joint_positions):
-        assert self._target_joint_positions, \
-            'Expected target joint positions to be set, but it was not.'
+        # assert self._target_joint_positions, \
+        #     'Expected target joint positions to be set, but it was not.'
 
         # Fill out this method ##################################
         # Using the input joint feedback, and the known target joint positions,

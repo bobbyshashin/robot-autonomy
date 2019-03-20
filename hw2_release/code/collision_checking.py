@@ -13,6 +13,22 @@ import numpy as np
 from numpy import cos,sin
 # import vrep_utils as vu
 
+joint_cuboid_names = ['arm_base_link_joint_collision_cuboid',
+                'shoulder_link_collision_cuboid',
+                'elbow_link_collision_cuboid',
+                'forearm_link_collision_cuboid',
+                'wrist_link_collision_cuboid',
+                'gripper_link_collision_cuboid',
+                'finger_r_collision_cuboid',
+                'finger_l_collision_cuboid']
+
+obstacle_cuboid_names = ['cuboid_0',
+                'cuboid_1',
+                'cuboid_2',
+                'cuboid_3',
+                'cuboid_4',
+                'cuboid_5']
+
 def constructRotationMatrix(orientation, rotation_convention):
     r, p, y = orientation
 
@@ -151,9 +167,9 @@ class CollisionChecker:
         self.obstacle_cuboids = obstacle_cuboids
         self.fk_handler = forward_kinematics_handler
 
-    def collisionCheck(self):
+    def collisionCheckAll(self):
 
-        # Test collision between obstacle and joints
+        # Check collision between obstacle and links
         num_links = len(self.link_cuboids)
         num_obstacles = len(self.obstacle_cuboids)
 
@@ -162,14 +178,30 @@ class CollisionChecker:
                 collide = SATcollisionCheck(self.link_cuboids[i], self.obstacle_cuboids[j])
                 if collide:
                     return True
+                    # print(joint_cuboid_names[i] + " and " + obstacle_cuboid_names[j] + ": Collided!")
+                    # print(collide)
 
-        # Test collision between different joints (arm's self-collision check)
+        # Check collision between different links (arm's self-collision check)
 
         for i in range(num_links):
-            for j in range(1, num_links - i - 1):
+            for j in range(2, num_links - i - 1):
                 collide = SATcollisionCheck(self.link_cuboids[i], self.link_cuboids[i+j])
                 if collide:
-                    return True
+                    # print(joint_cuboid_names[i] + " and " + joint_cuboid_names[i+j] + ":")
+                    # print(collide)
+                    if (i == 0) and (i+j == 2):
+                        # ignore when base_arm and elbow link collides
+                        pass
+                    else:
+                        return True
+
+        # Check collisin between links and ground
+        for i in range(num_links):
+            min_z = np.min(self.link_cuboids[i].vertices[:, 2])
+            # print(min_z)
+            if min_z <= 0.0:
+                return True
+
         return False
 
     def checkCollisionSample(self, sample):
@@ -185,12 +217,12 @@ class CollisionChecker:
         for i in range(len(cuboid_poses)):
             self.link_cuboids[i+1].update(cuboid_poses[i][0:3, 3], cuboid_poses[i][0:3, 0:3])
 
-        collide = self.collisionCheck()
-        print(collide)
-        return self.collisionCheck()
+        # collide = self.collisionCheck()
+        # print(collide)
+        return self.collisionCheckAll()
 
     def checkCollisionEdge(edge):
-        pass
+        
 
 c_ref = Cuboid(origin=[0.0, 0.0, 0.0], orientation=[0.0, 0.0, 0.0], dimension=[3.0, 1.0, 2.0])
 

@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from PRM import PRM
 from forward_kinematics import ForwardKinematicsHandler
-from collision_checking import CollisionChecker, Cuboid
+from collision_checking import CollisionChecker, Cuboid, SATcollisionCheck
 from arm_controller import ArmController
 
 def main(args):
@@ -122,17 +122,18 @@ def main(args):
 
     # for i in range(num_joints):
     #     for j in range(num_obstacles):
-    #         collide = collisionCheck(joint_cuboids[i], obstacle_cuboids[j])
+    #         collide = SATcollisionCheck(joint_cuboids[i], obstacle_cuboids[j])
     #         if collide:
     #             print(joint_cuboid_names[i] + " and " + obstacle_cuboid_names[j] + ": Collided!")
 
     # Test collision between different joints (arm's self-collision check)
 
     # for i in range(num_joints):
-    #     for j in range(1, num_joints - i - 1):
-    #         collide = collisionCheck(joint_cuboids[i], joint_cuboids[i+j])
-    #         print(joint_cuboid_names[i] + " and " + joint_cuboid_names[i+j] + ":")
-    #         print(collide)
+    #     for j in range(2, num_joints - i - 1):
+    #         collide = SATcollisionCheck(joint_cuboids[i], joint_cuboids[i+j])
+    #         if collide:
+    #             print(joint_cuboid_names[i] + " and " + joint_cuboid_names[i+j] + ":")
+    #             print(collide)
 
     joint_positions = vu.get_arm_joint_poses(clientID)
 
@@ -140,12 +141,13 @@ def main(args):
     controller = ArmController()
 
     foward_kinematics_handler = ForwardKinematicsHandler(initial, link_translation, rotational_axes, joint_cuboid_positions[1:], joint_cuboid_orientations[1:]) # TODO
-    collision_checker = CollisionChecker(joint_cuboids, obstacle_cuboids, foward_kinematics_handler) # TODO
+    collision_checker = CollisionChecker(joint_cuboids, obstacle_cuboids, foward_kinematics_handler)
 
 
     PRM_planner = PRM(JOINT_LOWER_LIMIT, JOINT_UPPER_LIMIT, 5, collision_checker) # TODO
 
-    sample = PRM_planner.randomSample()
+    # sample = PRM_planner.randomSample()
+    sample = final
     print("Sample: ")
     print(sample)
 
@@ -153,7 +155,7 @@ def main(args):
 
     path = PRM_planner.plan(initial, final, num_samples=500)
 
-    fingers = np.array([-0.01, 0.01])
+    fingers = np.array([-0.03, 0.03])
 
     # # Reset simulation in case something was running
     # vu.reset_sim(clientID)

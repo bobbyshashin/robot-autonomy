@@ -152,16 +152,12 @@ def main(args):
     # print(sample)
     # collision_checker.checkCollisionSample(sample)
 
-    path = PRM_planner.plan(initial, final, N=100, k=10)
-    path_length = np.array([len(path)])
+    ''' ===== Uncomment below to generate a new path ====='''
+    # path = PRM_planner.plan(initial, final, N=1000, k=20)
+    # path_array = np.array(path)
+    # np.savetxt("path.txt", path_array)
 
-    # while path = None: # no path found
-    #     path = PRM_planner() # TODO try larger N
-
-    path_array = np.array(path)
-    np.savetxt("path.txt", path_array)
-    np.savetxt("path_length.txt", path_length)
-    # path = list(np.loadtxt("path.txt"))
+    path = list(np.loadtxt("path_500_74s.txt"))
 
     fingers = np.array([-0.03, 0.03])
     # Reset simulation in case something was running
@@ -213,6 +209,67 @@ def main(args):
     # joint_feedback_history = np.array(joint_feedback_history)
     # joint_target_history = np.array(joint_target_history)
     # ctrl_command_history = np.array(ctrl_command_history)
+
+    # plt.figure()
+    # plt.plot(time_history, joint_feedback_history[:, 0], 'r', linewidth=2, label='actual')
+    # plt.plot(time_history, joint_target_history[:, 0], 'b', linewidth=2, label='target')
+    # plt.xlabel('Timestamp (s)')
+    # plt.ylabel('Joint1 Angle (rad)')
+    # plt.legend()   
+    # plt.grid()
+
+
+    # plt.figure()
+    # plt.plot(time_history, joint_feedback_history[:, 1], 'r', linewidth=2, label='actual')
+    # plt.plot(time_history, joint_target_history[:, 1], 'b', linewidth=2, label='target')
+    # plt.xlabel('Timestamp (s)')
+    # plt.ylabel('Joint2 Angle (rad)')
+    # plt.legend()   
+    # plt.grid()
+    
+    # plt.figure()
+    # plt.plot(time_history, joint_feedback_history[:, 2], 'r', linewidth=2, label='actual')
+    # plt.plot(time_history, joint_target_history[:, 2], 'b', linewidth=2, label='target')
+    # plt.xlabel('Timestamp (s)')
+    # plt.ylabel('Joint3 Angle (rad)')
+    # plt.legend()   
+    # plt.grid()
+
+    # plt.figure()
+    # plt.plot(time_history, joint_feedback_history[:, 3], 'r', linewidth=2, label='actual')
+    # plt.plot(time_history, joint_target_history[:, 3], 'b', linewidth=2, label='target')
+    # plt.xlabel('Timestamp (s)')
+    # plt.ylabel('Joint4 Angle (rad)')
+    # plt.legend()   
+    # plt.grid()
+
+    # plt.figure()
+    # plt.plot(time_history, joint_feedback_history[:, 4], 'r', linewidth=2, label='actual')
+    # plt.plot(time_history, joint_target_history[:, 4], 'b', linewidth=2, label='target')
+    # plt.xlabel('Timestamp (s)')
+    # plt.ylabel('Joint5 Angle (rad)')
+    # plt.legend()   
+    # plt.grid()
+
+    # plt.figure()
+    # plt.plot(time_history, joint_feedback_history[:, 5], 'r', linewidth=2, label='actual')
+    # plt.plot(time_history, joint_target_history[:, 5], 'b', linewidth=2, label='target')
+    # # plt.plot(time_history, ctrl_command_history[:, 5], 'g', linewidth=2, label='ctrl_command')
+    # plt.xlabel('Timestamp (s)')
+    # plt.ylabel('Joint6 Angle (m)')
+    # plt.legend()   
+    # plt.grid()
+
+    # plt.figure()
+    # plt.plot(time_history, joint_feedback_history[:, 6], 'r', linewidth=2, label='actual')
+    # plt.plot(time_history, joint_target_history[:, 6], 'b', linewidth=2, label='target')
+    # # plt.plot(time_history, ctrl_command_history[:, 6], 'g', linewidth=2, label='ctrl_command')
+    # plt.xlabel('Timestamp (s)')
+    # plt.ylabel('Joint7 Angle (m)')
+    # plt.legend()   
+    # plt.grid()
+
+    # plt.show()
 
 
 if __name__ == "__main__":

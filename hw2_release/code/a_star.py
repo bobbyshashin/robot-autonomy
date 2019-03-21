@@ -67,9 +67,9 @@ class A_Star_PRM:
     def heuristic(self, node):
         return self.euclidean_distance(node, self.goal)
 
-    def findSmallestIndex(self):
-        keys = self.open_list.keys()
-        return min(keys)
+    def findSmallestF(self):
+        index = min(self.open_list, key=lambda node: self.open_list[node].f)
+        return index
 
     def search(self):
         print("A* Search Begins...")
@@ -84,7 +84,7 @@ class A_Star_PRM:
                 print("Cannot find path, failed.")
                 return False
 
-            min_id = self.findSmallestIndex()
+            min_id = self.findSmallestF()
             print("Current node id: " + str(min_id))
             curr_node = self.open_list[min_id]
             self.closed_list[min_id] = deepcopy(curr_node)

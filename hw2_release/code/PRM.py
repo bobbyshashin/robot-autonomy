@@ -34,12 +34,17 @@ class PRM:
     self.path = None
 
   def randomSample(self):
-    sample = []
-    for i in range(self.dimension):
-      r = np.random.random_sample()
-      one_sample = (self.upper_limit[i] - self.lower_limit[i]) * r + self.lower_limit[i]
-      sample.append(one_sample)
-    return sample # list of size "dimension"
+    # sample = []
+    # for i in range(self.dimension):
+    #   r = np.random.random_sample()
+    #   one_sample = (self.upper_limit[i] - self.lower_limit[i]) * r + self.lower_limit[i]
+    #   sample.append(one_sample)
+    return np.random.random_sample((5, )) * (self.upper_limit - self.lower_limit) + self.lower_limit
+
+    # return sample # list of size "dimension"
+
+  def uniformSample(self, N):
+    return np.random.uniform(self.lower_limit, self.upper_limit, N)
 
   def interpolate(self, sample1, sample2, num_interval=3):
     p1 = np.array(sample1)
@@ -64,6 +69,13 @@ class PRM:
       # TODO: resample globally or around current sample? (globally for now)
       if self.collision_checker.checkCollisionSample(s) == False: # no collision
         self.samples.append(s)
+        print(len(self.samples))
+      else:
+        s_new = np.random.normal(s, scale=0.1)
+        while self.collision_checker.checkCollisionSample(s_new) == False:
+            s_new = np.random.normal(s, scale=0.1)
+            print("Gaussian sampling...")
+        self.samples.append(s_new)
         print(len(self.samples))
 
 

@@ -81,6 +81,10 @@ def main(args):
     joint_cuboid_orientations = vu.get_cuboid_orientations(clientID, joint_cuboid_handles)
     joint_cuboid_dimensions = vu.get_cuboid_dimensions(clientID, joint_cuboid_handles)
 
+    np.savetxt("link_cuboid_positions.txt", np.array(joint_cuboid_positions))
+    np.savetxt("link_cuboid_orientations.txt", np.array(joint_cuboid_orientations))
+    np.savetxt("link_cuboid_dimensions.txt", np.array(joint_cuboid_dimensions))
+
     obstacle_cuboid_positions = vu.get_cuboid_positions(clientID, obstacle_cuboid_handles)
     obstacle_cuboid_orientations = vu.get_cuboid_orientations(clientID, obstacle_cuboid_handles)
     obstacle_cuboid_dimensions = vu.get_cuboid_dimensions(clientID, obstacle_cuboid_handles)
